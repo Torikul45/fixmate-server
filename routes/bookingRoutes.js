@@ -1,4 +1,3 @@
-
 import express from "express";
 import { ObjectId } from "mongodb";
 import { getDB } from "../config/db.js";
@@ -13,13 +12,8 @@ router.post("/", verifyToken, verifyCustomer, async (req, res) => {
   try {
     const db = getDB();
 
-    const {
-      serviceId,
-      phone,
-      address,
-      preferredDate,
-      problemDescription,
-    } = req.body || {};
+    const { serviceId, phone, address, preferredDate, problemDescription } =
+      req.body || {};
 
     if (
       typeof serviceId !== "string" ||
@@ -82,6 +76,12 @@ router.post("/", verifyToken, verifyCustomer, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "No technician is assigned to this service.",
+      });
+    }
+    if (service.technicianId === req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "You cannot book your own service.",
       });
     }
 
@@ -211,7 +211,7 @@ router.get(
         message: "Failed to fetch technician requests.",
       });
     }
-  }
+  },
 );
 
 // Update Booking Status (Technician)
@@ -262,8 +262,7 @@ router.patch("/:id/status", verifyToken, verifyTechnician, async (req, res) => {
       const amount = Number(finalAmount);
 
       if (
-        (typeof finalAmount !== "number" &&
-          typeof finalAmount !== "string") ||
+        (typeof finalAmount !== "number" && typeof finalAmount !== "string") ||
         String(finalAmount).trim() === "" ||
         !Number.isFinite(amount) ||
         amount <= 0
@@ -285,7 +284,7 @@ router.patch("/:id/status", verifyToken, verifyTechnician, async (req, res) => {
       },
       {
         $set: updateData,
-      }
+      },
     );
 
     if (result.modifiedCount === 0) {
@@ -333,7 +332,7 @@ router.patch("/:id/cancel", verifyToken, verifyCustomer, async (req, res) => {
           status: "cancelled",
           updatedAt: new Date(),
         },
-      }
+      },
     );
 
     if (result.matchedCount === 0) {
