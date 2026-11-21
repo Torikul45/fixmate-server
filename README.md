@@ -91,10 +91,11 @@ The backend provides APIs for:
 
 Stripe is used to process payments securely. The backend handles checkout sessions, payment verification, and webhook events with idempotency protection.
 
-## Project Status
+## Live Server
 
-Backend development and local testing completed. Production deployment will 
-be added later.
+Production API URL: https://fixmate-server-rust.vercel.app
+
+Backend is deployed on Vercel.
 
 ## Test Credentials
 
