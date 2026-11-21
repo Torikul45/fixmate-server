@@ -19,14 +19,19 @@ router.post("/", verifyToken, verifyCustomer, async (req, res) => {
       address,
       preferredDate,
       problemDescription,
-    } = req.body;
+    } = req.body || {};
 
     if (
-      !serviceId ||
-      !phone?.trim() ||
-      !address?.trim() ||
-      !preferredDate ||
-      !problemDescription?.trim()
+      typeof serviceId !== "string" ||
+      typeof phone !== "string" ||
+      typeof address !== "string" ||
+      typeof preferredDate !== "string" ||
+      typeof problemDescription !== "string" ||
+      !serviceId.trim() ||
+      !phone.trim() ||
+      !address.trim() ||
+      !preferredDate.trim() ||
+      !problemDescription.trim()
     ) {
       return res.status(400).json({
         success: false,
@@ -135,6 +140,16 @@ router.post("/", verifyToken, verifyCustomer, async (req, res) => {
       },
     });
   } catch (error) {
+    if (
+      error.code === 11000 &&
+      error.message.includes("unique_active_customer_service_booking")
+    ) {
+      return res.status(409).json({
+        success: false,
+        message: "You already have an active booking for this service.",
+      });
+    }
+
     console.error("Create Booking Error:", error.message);
 
     res.status(500).json({
@@ -204,7 +219,7 @@ router.patch("/:id/status", verifyToken, verifyTechnician, async (req, res) => {
   try {
     const db = getDB();
     const { id } = req.params;
-    const { status, finalAmount } = req.body;
+    const { status, finalAmount } = req.body || {};
 
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -246,7 +261,13 @@ router.patch("/:id/status", verifyToken, verifyTechnician, async (req, res) => {
     if (status === "completed") {
       const amount = Number(finalAmount);
 
-      if (!Number.isFinite(amount) || amount <= 0) {
+      if (
+        (typeof finalAmount !== "number" &&
+          typeof finalAmount !== "string") ||
+        String(finalAmount).trim() === "" ||
+        !Number.isFinite(amount) ||
+        amount <= 0
+      ) {
         return res.status(400).json({
           success: false,
           message: "A valid final amount greater than zero is required.",

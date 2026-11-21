@@ -7,6 +7,9 @@ import verifyTechnician from "../middlewares/verifyTechnician.js";
 
 const router = express.Router();
 
+const escapeRegex = (value) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // Create a new service (Technician only)
 router.post("/", verifyToken, verifyTechnician, async (req, res) => {
   try {
@@ -285,9 +288,17 @@ router.get("/", async (req, res) => {
     };
 
     if (search) {
+      if (typeof search !== "string" || search.length > 100) {
+        return res.status(400).json({
+          message: "Invalid search query.",
+        });
+      }
+
+      const safeSearch = escapeRegex(search.trim());
+
       query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } },
+        { title: { $regex: safeSearch, $options: "i" } },
+        { category: { $regex: safeSearch, $options: "i" } },
       ];
     }
 

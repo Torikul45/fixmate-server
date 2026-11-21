@@ -110,17 +110,32 @@ const processSuccessfulPayment = async (session) => {
         throw new Error("Booking payment update failed");
       }
 
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id || null;
+
       payment = {
         bookingId: booking._id,
+        serviceTitle: booking.serviceTitle || "",
+
         customerId,
+        customerName: booking.customerName || "",
+        customerEmail: booking.customerEmail || "",
+
+        technicianId: booking.technicianId || "",
+        technicianName: booking.technicianName || "",
+        technicianEmail: booking.technicianEmail || "",
+
         stripeSessionId: session.id,
-        stripePaymentIntentId:
-          typeof session.payment_intent === "string"
-            ? session.payment_intent
-            : session.payment_intent?.id || null,
+        stripePaymentIntentId: paymentIntentId,
+        transactionId: paymentIntentId || session.id,
+
         amount,
         currency: "usd",
-        status: "paid",
+        paymentStatus: "paid",
+
+        paidAt: new Date(),
         createdAt: new Date(),
       };
 
@@ -180,9 +195,9 @@ router.post(
   verifyCustomer,
   async (req, res) => {
     try {
-      const { bookingId } = req.body;
+      const { bookingId } = req.body || {};
 
-      if (!ObjectId.isValid(bookingId)) {
+      if (typeof bookingId !== "string" || !ObjectId.isValid(bookingId)) {
         return res.status(400).json({
           message: "Invalid booking ID",
         });
@@ -221,6 +236,32 @@ router.post(
         });
       }
 
+      if (booking.stripeSessionId) {
+        try {
+          const existingSession = await stripe.checkout.sessions.retrieve(
+            booking.stripeSessionId
+          );
+
+          if (
+            existingSession.status === "open" &&
+            existingSession.payment_status !== "paid"
+          ) {
+            return res.status(200).json({
+              message: "Existing checkout session found",
+              url: existingSession.url,
+            });
+          }
+
+          if (existingSession.payment_status === "paid") {
+            return res.status(409).json({
+              message: "Payment is being processed. Please refresh shortly.",
+            });
+          }
+        } catch (error) {
+          console.error("Existing Stripe session lookup:", error.message);
+        }
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         line_items: [
@@ -249,6 +290,7 @@ router.post(
           customerId: req.user.id,
           status: "completed",
           paymentStatus: { $ne: "paid" },
+          stripeSessionId: booking.stripeSessionId ?? null,
         },
         {
           $set: {
@@ -259,8 +301,10 @@ router.post(
       );
 
       if (updateResult.modifiedCount !== 1) {
+        await stripe.checkout.sessions.expire(session.id);
+
         return res.status(409).json({
-          message: "Could not create checkout session for this booking",
+          message: "A checkout session already exists. Please refresh and try again.",
         });
       }
 
@@ -285,9 +329,9 @@ router.post(
   verifyCustomer,
   async (req, res) => {
     try {
-      const { sessionId } = req.body;
+      const { sessionId } = req.body || {};
 
-      if (!sessionId) {
+      if (typeof sessionId !== "string" || !sessionId.trim()) {
         return res.status(400).json({
           message: "Session ID is required",
         });
