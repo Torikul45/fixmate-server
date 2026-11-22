@@ -33,7 +33,7 @@ const processSuccessfulPayment = async (session) => {
           stripeSessionId: session.id,
           status: "completed",
         },
-        { session: mongoSession }
+        { session: mongoSession },
       );
 
       if (!booking) {
@@ -56,7 +56,7 @@ const processSuccessfulPayment = async (session) => {
 
       const existingPayment = await paymentsCollection.findOne(
         { stripeSessionId: session.id },
-        { session: mongoSession }
+        { session: mongoSession },
       );
 
       if (existingPayment) {
@@ -76,7 +76,7 @@ const processSuccessfulPayment = async (session) => {
                 updatedAt: new Date(),
               },
             },
-            { session: mongoSession }
+            { session: mongoSession },
           );
         }
 
@@ -103,7 +103,7 @@ const processSuccessfulPayment = async (session) => {
             updatedAt: new Date(),
           },
         },
-        { session: mongoSession }
+        { session: mongoSession },
       );
 
       if (result.modifiedCount !== 1) {
@@ -160,7 +160,7 @@ router.post("/webhook", async (req, res) => {
     event = stripe.webhooks.constructEvent(
       req.body,
       signature,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (error) {
     console.error("Webhook signature verification failed:", error.message);
@@ -239,7 +239,7 @@ router.post(
       if (booking.stripeSessionId) {
         try {
           const existingSession = await stripe.checkout.sessions.retrieve(
-            booking.stripeSessionId
+            booking.stripeSessionId,
           );
 
           if (
@@ -297,14 +297,15 @@ router.post(
             stripeSessionId: session.id,
             updatedAt: new Date(),
           },
-        }
+        },
       );
 
       if (updateResult.modifiedCount !== 1) {
         await stripe.checkout.sessions.expire(session.id);
 
         return res.status(409).json({
-          message: "A checkout session already exists. Please refresh and try again.",
+          message:
+            "A checkout session already exists. Please refresh and try again.",
         });
       }
 
@@ -319,7 +320,7 @@ router.post(
         message: "Failed to create checkout session",
       });
     }
-  }
+  },
 );
 
 // Verify Stripe Payment
@@ -369,60 +370,58 @@ router.post(
         message: "Payment verification failed",
       });
     }
-  }
+  },
 );
 
 // Get Customer Payment History
-router.get(
-  "/my-payments",
-  verifyToken,
-  verifyCustomer,
-  async (req, res) => {
-    try {
-      const db = getDB();
+router.get("/my-payments", verifyToken, verifyCustomer, async (req, res) => {
+  try {
+    const db = getDB();
 
-      const payments = await db
-        .collection("payments")
-        .aggregate([
-          {
-            $match: {
-              customerId: req.user.id,
-            },
+    const payments = await db
+      .collection("payments")
+      .aggregate([
+        {
+          $match: {
+            customerId: req.user.id,
           },
-          {
-            $lookup: {
-              from: "bookings",
-              localField: "bookingId",
-              foreignField: "_id",
-              as: "booking",
-            },
+        },
+        {
+          $lookup: {
+            from: "bookings",
+            localField: "bookingId",
+            foreignField: "_id",
+            as: "booking",
           },
-          {
-            $unwind: {
-              path: "$booking",
-              preserveNullAndEmptyArrays: true,
-            },
+        },
+        {
+          $unwind: {
+            path: "$booking",
+            preserveNullAndEmptyArrays: true,
           },
-          {
-            $sort: {
-              createdAt: -1,
-            },
+        },
+        {
+          $sort: {
+            createdAt: -1,
           },
-        ])
-        .toArray();
+        },
+      ])
+      .toArray();
 
-      return res.status(200).json({
-        message: "Payment history fetched successfully",
-        payments,
-      });
-    } catch (error) {
-      console.error("Payment history error:", error.message);
+    return res.status(200).json({
+      message: "Payment history fetched successfully",
+      payments: payments.map((payment) => ({
+        ...payment,
+        paymentStatus: payment.paymentStatus || payment.status || "paid",
+      })),
+    });
+  } catch (error) {
+    console.error("Payment history error:", error.message);
 
-      return res.status(500).json({
-        message: "Failed to fetch payment history",
-      });
-    }
+    return res.status(500).json({
+      message: "Failed to fetch payment history",
+    });
   }
-);
+});
 
 export default router;
