@@ -77,15 +77,62 @@ http://localhost:5000
 
 Frontend repository: https://github.com/Torikul45/fixmate-client
 
-## API Overview
 
-The backend provides APIs for:
+## API Endpoints
 
-- Authentication and user management
-- Repair services
-- Booking management
-- Admin operations
-- Payment processing and verification
+All endpoints use the `/api` prefix.
+
+### Services
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/services` | Get available services |
+| GET | `/api/services/:id` | Get service details |
+| POST | `/api/services` | Create a repair service |
+| GET | `/api/services/my-services` | Get technician's services |
+| PATCH | `/api/services/:id/edit` | Update a service |
+| PATCH | `/api/services/:id/availability` | Update service availability |
+| DELETE | `/api/services/:id` | Delete a service |
+
+### Bookings
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/bookings` | Create a booking |
+| GET | `/api/bookings/my-bookings` | Get customer bookings |
+| GET | `/api/bookings/technician-requests` | Get technician booking requests |
+| PATCH | `/api/bookings/:id/status` | Update booking status |
+| PATCH | `/api/bookings/:id/cancel` | Cancel a booking |
+
+### Admin
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/admin/overview` | Get dashboard overview |
+| GET | `/api/admin/users` | Get all users |
+| PATCH | `/api/admin/users/:id/role` | Update user role |
+| GET | `/api/admin/services` | Get services for approval |
+| PATCH | `/api/admin/services/:id/approval` | Approve or reject a service |
+| GET | `/api/admin/bookings` | Get all bookings |
+| GET | `/api/admin/transactions` | Get payment transactions |
+
+### Payments
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/payments/webhook` | Handle Stripe webhook events |
+| POST | `/api/payments/create-checkout-session` | Create Stripe checkout session |
+| POST | `/api/payments/verify-payment` | Verify payment |
+| GET | `/api/payments/my-payments` | Get customer payment history |
+
+### Users
+
+| Method | Endpoint | Description |
+|---|---|---|
+| PATCH | `/api/users/profile` | Update user profile |
+
+Protected endpoints require a valid authentication token and appropriate role permissions.
+
 
 ## Payment Integration
 
