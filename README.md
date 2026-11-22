@@ -106,6 +106,19 @@ Backend is deployed on Vercel.
 | Technician 2 | mubid1234@gmail.com | Provided to examiner |
 | Customer     | nazib23@gmail.com   | Provided to examiner |
 
+## NPM Packages
+
+### Dependencies
+- express – Backend API and routing
+- mongodb – MongoDB database connection and queries
+- cors – Cross-origin resource sharing
+- dotenv – Environment variable management
+- jose – JWT verification
+- stripe – Payment processing
+
+### Development Dependencies
+- nodemon – Automatically restarts the server during development
+
 ## Author
 
 FixMate Project
