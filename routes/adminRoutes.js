@@ -1,4 +1,3 @@
-
 import express from "express";
 import { ObjectId } from "mongodb";
 import { getDB } from "../config/db.js";
@@ -12,14 +11,13 @@ router.get("/overview", verifyToken, verifyAdmin, async (req, res) => {
   try {
     const db = getDB();
 
-    const [totalUsers, totalTechnicians, pendingServices] =
-      await Promise.all([
-        db.collection("user").countDocuments(),
-        db.collection("user").countDocuments({ role: "technician" }),
-        db.collection("services").countDocuments({
-          approvalStatus: "pending",
-        }),
-      ]);
+    const [totalUsers, totalTechnicians, pendingServices] = await Promise.all([
+      db.collection("user").countDocuments(),
+      db.collection("user").countDocuments({ role: "technician" }),
+      db.collection("services").countDocuments({
+        approvalStatus: "pending",
+      }),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -104,7 +102,7 @@ router.patch("/users/:id/role", verifyToken, verifyAdmin, async (req, res) => {
           role,
           updatedAt: new Date(),
         },
-      }
+      },
     );
 
     if (result.matchedCount === 0) {
@@ -195,7 +193,7 @@ router.patch(
             approvalStatus,
             updatedAt: new Date(),
           },
-        }
+        },
       );
 
       if (result.matchedCount === 0) {
@@ -216,7 +214,7 @@ router.patch(
         message: "Failed to update service approval.",
       });
     }
-  }
+  },
 );
 // Get All Bookings for Admin
 router.get("/bookings", verifyToken, verifyAdmin, async (req, res) => {
@@ -284,34 +282,33 @@ router.get("/transactions", verifyToken, verifyAdmin, async (req, res) => {
     const db = getDB();
     const paymentsCollection = db.collection("payments");
 
-    const [payments, totalTransactions, revenueResult] =
-      await Promise.all([
-        paymentsCollection
-          .find({})
-          .sort({ createdAt: -1 })
-          .toArray(),
+    const [payments, totalTransactions, revenueResult] = await Promise.all([
+      paymentsCollection.find({}).sort({ createdAt: -1 }).toArray(),
 
-        paymentsCollection.countDocuments({}),
+      paymentsCollection.countDocuments({}),
 
-        paymentsCollection
-          .aggregate([
-            {
-              $group: {
-                _id: null,
-                totalRevenue: {
-                  $sum: "$amount",
-                },
+      paymentsCollection
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totalRevenue: {
+                $sum: "$amount",
               },
             },
-          ])
-          .toArray(),
-      ]);
+          },
+        ])
+        .toArray(),
+    ]);
 
     res.status(200).json({
       success: true,
       totalTransactions,
       totalRevenue: revenueResult[0]?.totalRevenue || 0,
-      payments,
+      payments: payments.map((payment) => ({
+        ...payment,
+        paymentStatus: payment.paymentStatus || payment.status || "paid",
+      })),
     });
   } catch (error) {
     console.error("Get Transactions Error:", error.message);
